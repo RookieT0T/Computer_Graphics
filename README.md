@@ -1,4 +1,4 @@
-## Computer_Graphics
+# **Computer_Graphics**
 These are programming projects of 22Fall COMPSCI559 offered by UW-Madison.
 
 # Project 1
