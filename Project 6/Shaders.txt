@@ -1,0 +1,109 @@
+#ifdef VS 
+ 
+precision highp float;
+attribute vec3 position;
+attribute vec3 normal;
+uniform mat3 normalMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+varying vec3 fNormal;
+varying vec3 fPosition;
+varying vec3 local;
+varying vec3 model;
+uniform float time;
+
+void main()
+{
+  model = position;
+  local = position;
+  
+  // add 0.1 or 0.2 in the following lines to prevent the model from being over-shrinked
+  // use nested trigonometric functions to prevent the model from being flipped during shrinking processes
+  if(model.y < 0.0){
+    model.y = model.y * (cos(sin(time * 3.0)) + 0.1);
+  }
+  else{
+    model.y = model.y * (cos(cos(time * 3.0)) + 0.2);
+  }
+  
+  model.x = model.x * (cos(cos(time * 3.0)) + 0.2);
+  fNormal = normalize(normalMatrix * normal);
+  vec4 pos = modelViewMatrix * vec4(model,1.0);
+  fPosition = pos.xyz;
+  gl_Position = projectionMatrix * pos;
+}
+ 
+#else 
+ 
+precision highp float;
+varying vec3 fPosition;
+varying vec3 fNormal;
+varying vec3 local;
+varying vec3 model;
+uniform float time;
+
+const float ambient_coeff   = 0.3;
+const float specular_exp    = 64.0;
+const float specular_coeff1 = 1.4;
+const float specular_coeff2 = 1.0;
+const vec3 stat_dir = vec3(0.0,-2.0,0.0); // stationary light direction
+const vec3 stat_color = vec3(0.0,0.5,0.0); // green stationary light
+
+void main()
+{
+  // cicular patterns on the object
+  // generate the pattern
+  float pattern = cos(local.x*15.0) + cos(local.y*15.0);
+  
+  vec3 object_color;
+  // add sin to make the pattern keep changing
+  if(mod(pattern + cos(7.5*time),0.8) > 0.5){
+    object_color = vec3(0.5,0.5,0.5); // grey
+  }
+  else{
+    object_color = vec3(0.0,0.0,0.0); // black
+  }
+  
+  // change diffuse light directions
+  float theta1 = time*15.0;
+  float theta2 = time*15.0 - 5.0;
+  vec3 diff_dir1 = vec3(cos(theta1),0,sin(theta1));
+  vec3 diff_dir2 = vec3(0,sin(theta2),cos(theta2));
+  // red diffuse light color
+  vec3 light_color1 = vec3(0.6,0.0,0.0);
+  // blue diffuse light color changes over time
+  vec3 light_color2 = vec3(0.0,cos(cos(5.0*time)) - 0.3,0.8);
+  
+  vec3 light1 = normalize(diff_dir1);
+  vec3 light2 = normalize(diff_dir2);
+  vec3 light3 = normalize(stat_dir);
+  vec3 normal = normalize(fNormal);
+  vec3 eye = normalize(-fPosition);
+  vec3 h1 = normalize(eye + light1);
+  vec3 h2 = normalize(eye + light2);
+  vec3 h3 = normalize(eye + light3);
+  
+  // ambient light
+  vec3 ambient_color = ambient_coeff * object_color;
+  // three specular lights
+  vec3 specular_color1 = specular_coeff1 * pow(max(0.0,dot(normal,h1)),specular_exp) * light_color1;
+  vec3 specular_color2 = specular_coeff1 * pow(max(0.0,dot(normal,h2)),specular_exp) * light_color2;
+  vec3 specular_color3 = specular_coeff2 * pow(max(0.0,dot(normal,h3)),specular_exp) * stat_color;
+  // two diffuse lights
+  vec3 diffuse_color1 = (dot(fNormal,diff_dir1)) * light_color1;
+  vec3 diffuse_color2 = (dot(fNormal,diff_dir2)) * light_color2;
+
+  // discard certain parts
+  // refer to the professor's discarding code in lecture slide
+  if(local.x > 0.0 && local.y > 0.0)
+    if(cos(local.x * 150.0) > 0.2 && sin(local.y * 150.0) > 0.2)
+      discard;
+            
+  if(local.x < 0.0 && local.y < 0.0)
+    if(cos(local.x * 150.0) > 0.2 || sin(local.y * 150.0) > 0.2)
+      discard;
+            
+  gl_FragColor = vec4(ambient_color+specular_color1+specular_color2+specular_color3+diffuse_color1+diffuse_color2, 1.0);
+}
+ 
+#endif
