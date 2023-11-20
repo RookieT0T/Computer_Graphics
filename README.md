@@ -1,5 +1,5 @@
 # **Computer_Graphics**
-These are programming projects of 22Fall COMPSCI559 offered by UW-Madison.
+These are programming projects.
 
 ## Project 1 ##
 Draw a picture on a 2D Canvas on a web page.
